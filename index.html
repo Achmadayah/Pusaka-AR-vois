@@ -246,6 +246,7 @@
             renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
             renderer.setSize(width, height);
             renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.outputEncoding = THREE.sRGBEncoding;
 
             // Controls (Untuk interaksi mouse/touch)
             controls = new THREE.OrbitControls(camera, renderer.domElement);
@@ -258,10 +259,10 @@
             controls.autoRotateSpeed = 2.0;
 
             // Lighting
-            const ambientLight = new THREE.AmbientLight(0xffffff, 1.5);
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
             scene.add(ambientLight);
 
-            const directionalLight1 = new THREE.DirectionalLight(0xffffff, 1.0);
+            const directionalLight1 = new THREE.DirectionalLight(0xffffff, 2.5);
             directionalLight1.position.set(5, 10, 7);
             scene.add(directionalLight1);
 
@@ -278,6 +279,20 @@
                 'scene.glb', // <-- GANTI DENGAN PATH MODEL ANDA
                 function (gltf) {
                     model = gltf.scene;
+
+                    model.traverse((child) => {
+    if (child.isMesh) {
+        // Ini memastikan material model Anda di-render dengan warna yang benar
+        child.castShadow = true;
+        child.receiveShadow = true;
+        
+        // Memastikan Three.js memproses warna dan tekstur dengan benar
+        if (child.material.map) {
+            child.material.map.encoding = THREE.sRGBEncoding; 
+        }
+        child.material.needsUpdate = true;
+    }
+});
                     
                     // Skala dan posisi model (sesuaikan berdasarkan ukuran model Anda)
                     model.scale.set(1.5, 1.5, 1.5); 
