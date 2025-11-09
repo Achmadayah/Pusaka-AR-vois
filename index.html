@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sigale Gale 3D</title>
-    <script src="https://cdn.jsdelivr.net/npm/@google/model-viewer@2.1.1/dist/model-viewer.min.js"></script>
+    <script type="module" src="https://unpkg.com/@google/model-viewer@^2.1.1/dist/model-viewer.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -179,33 +179,23 @@
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
         }
 
-        .material-controls {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-top: 15px;
-            flex-wrap: wrap;
+        .file-input-container {
+            text-align: center;
+            margin-bottom: 15px;
         }
 
-        .material-btn {
+        .file-input {
             background: rgba(255, 255, 255, 0.15);
             border: 1px solid rgba(255, 255, 255, 0.3);
             border-radius: 8px;
-            padding: 8px 15px;
+            padding: 10px 15px;
             color: white;
             cursor: pointer;
-            transition: all 0.3s;
-            font-size: 0.85rem;
+            font-size: 0.9rem;
         }
 
-        .material-btn:hover {
+        .file-input:hover {
             background: rgba(255, 255, 255, 0.25);
-        }
-
-        .material-btn.active {
-            background: #FFD700;
-            color: #8B4513;
-            font-weight: bold;
         }
 
         @media (max-width: 768px) {
@@ -242,38 +232,35 @@
         <div style="text-align: center; margin-bottom: 15px;">
             <div class="cultural-badge">Warisan Budaya Batak</div>
         </div>
+
+        <div class="file-input-container">
+            <label class="file-input">
+                📁 Upload Model 3D (GLB)
+                <input type="file" id="model-upload" accept=".glb" style="display: none;">
+            </label>
+        </div>
         
         <div class="model-container">
             <div class="loading-overlay" id="loading-overlay">
                 <div class="spinner"></div>
-                <div>Memuat model 3D...</div>
+                <div>Pilih file model 3D (.glb)</div>
             </div>
             <model-viewer 
                 id="model-viewer"
-                src="scene.glb" 
                 alt="Model 3D Sigale Gale"
                 auto-rotate 
                 camera-controls
                 shadow-intensity="1.5"
                 environment-image="neutral"
                 camera-orbit="0deg 75deg 105%"
-                exposure="1.5"
-                ar
-                ar-modes="webxr scene-viewer quick-look"
-                ios-src="sigale-gale.usdz">
-            
+                exposure="1.5">
+                
                 <div slot="poster">
-                    <div style="display: flex; justify-content: center; align-items: center; height: 100%;">
-                        <div>Loading Sigale Gale 3D...</div>
+                    <div style="display: flex; justify-content: center; align-items: center; height: 100%; color: white;">
+                        Model 3D belum dimuat
                     </div>
                 </div>
             </model-viewer>
-        </div>
-        
-        <div class="material-controls">
-            <button class="material-btn active" data-environment="neutral">Pencahayaan Normal</button>
-            <button class="material-btn" data-environment="legacy">Pencahayaan Hangat</button>
-            <button class="material-btn" data-environment="spruit">Pencahayaan Terang</button>
         </div>
         
         <div class="model-controls">
@@ -314,69 +301,121 @@
         const zoomInBtn = document.getElementById('zoom-in');
         const zoomOutBtn = document.getElementById('zoom-out');
         const loadingOverlay = document.getElementById('loading-overlay');
-        const materialBtns = document.querySelectorAll('.material-btn');
+        const modelUpload = document.getElementById('model-upload');
 
         let currentAudio = null;
         let isPlaying = false;
         let isAutoRotating = true;
 
-        // Event listener untuk model viewer
-        modelViewer.addEventListener('load', () => {
-            console.log('Model 3D berhasil dimuat');
-            loadingOverlay.style.display = 'none';
-            
-            // Cek material dan texture
-            checkMaterials();
-        });
-
-        modelViewer.addEventListener('error', (event) => {
-            console.error('Error loading model:', event.detail);
-            loadingOverlay.innerHTML = `
-                <div style="text-align: center;">
-                    <div style="font-size: 3rem; margin-bottom: 10px;">⚠️</div>
-                    <div>Gagal memuat model 3D</div>
-                    <div style="font-size: 0.8rem; margin-top: 10px; opacity: 0.8;">
-    
-                    </div>
-                </div>
-            `;
-        });
-
-        // Fungsi untuk memeriksa material
-        function checkMaterials() {
-            // Tunggu sebentar untuk memastikan model sudah ter-render
-            setTimeout(() => {
-                const scene = modelViewer.model;
-                if (scene) {
-                    console.log('Scene loaded:', scene);
-                    scene.traverse((node) => {
-                        if (node.isMesh) {
-                            console.log('Mesh found:', node.name);
-                            console.log('Material:', node.material);
-                            if (node.material) {
-                                console.log('Material properties:', {
-                                    color: node.material.color,
-                                    map: node.material.map,
-                                    roughness: node.material.roughness,
-                                    metalness: node.material.metalness
-                                });
-                            }
-                        }
-                    });
+        // Event listener untuk upload file
+        modelUpload.addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                if (file.name.toLowerCase().endsWith('.glb')) {
+                    loadModelFromFile(file);
+                } else {
+                    alert('Silakan pilih file dengan format .glb');
                 }
-            }, 1000);
+            }
+        });
+
+        // Fungsi untuk memuat model dari file
+        function loadModelFromFile(file) {
+            loadingOverlay.innerHTML = `
+                <div class="spinner"></div>
+                <div>Memuat model 3D...</div>
+            `;
+            loadingOverlay.style.display = 'flex';
+
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                const arrayBuffer = e.target.result;
+                
+                // Buat blob URL dari array buffer
+                const blob = new Blob([arrayBuffer], { type: 'model/gltf-binary' });
+                const url = URL.createObjectURL(blob);
+                
+                // Set source model viewer
+                modelViewer.src = url;
+                
+                // Event listener untuk success
+                modelViewer.addEventListener('load', () => {
+                    console.log('Model berhasil dimuat');
+                    loadingOverlay.style.display = 'none';
+                    
+                    // Setel pencahayaan yang optimal
+                    modelViewer.exposure = 1.8;
+                    modelViewer.shadowIntensity = 1.8;
+                    
+                    // Reset camera
+                    resetView();
+                });
+
+                // Event listener untuk error
+                modelViewer.addEventListener('error', (event) => {
+                    console.error('Error loading model:', event);
+                    loadingOverlay.innerHTML = `
+                        <div style="text-align: center;">
+                            <div style="font-size: 3rem; margin-bottom: 10px;">⚠️</div>
+                            <div>Gagal memuat model 3D</div>
+                            <div style="font-size: 0.8rem; margin-top: 10px; opacity: 0.8;">
+                                Format file mungkin tidak didukung
+                            </div>
+                        </div>
+                    `;
+                });
+            };
+
+            reader.onerror = function() {
+                loadingOverlay.innerHTML = `
+                    <div style="text-align: center;">
+                        <div style="font-size: 3rem; margin-bottom: 10px;">❌</div>
+                        <div>Gagal membaca file</div>
+                    </div>
+                `;
+            };
+
+            reader.readAsArrayBuffer(file);
+        }
+
+        // Fallback: Coba load dari URL default jika ada
+        function tryLoadDefaultModel() {
+            // Ganti dengan path ke file GLB Anda jika ada
+            const defaultModelUrl = 'scene.glb';
+            
+            // Cek jika file ada dengan fetch
+            fetch(defaultModelUrl, { method: 'HEAD' })
+                .then(response => {
+                    if (response.ok) {
+                        modelViewer.src = defaultModelUrl;
+                        loadingOverlay.innerHTML = `
+                            <div class="spinner"></div>
+                            <div>Memuat model default...</div>
+                        `;
+                    }
+                })
+                .catch(() => {
+                    // File tidak ada, tetap tampilkan upload
+                    loadingOverlay.innerHTML = `
+                        <div style="text-align: center;">
+                            <div>Pilih file model 3D (.glb)</div>
+                            <div style="font-size: 0.8rem; margin-top: 10px; opacity: 0.8;">
+                                Upload file GLB untuk menampilkan model
+                            </div>
+                        </div>
+                    `;
+                });
         }
 
         // Fungsi untuk text-to-speech
         function speakText(text) {
-            // Hentikan audio sebelumnya jika sedang berjalan
             if (currentAudio && isPlaying) {
                 currentAudio.pause();
                 isPlaying = false;
                 playBtn.textContent = '▶';
             }
 
-            // Gunakan Web Speech API jika tersedia
             if ('speechSynthesis' in window) {
                 const utterance = new SpeechSynthesisUtterance(text);
                 utterance.lang = 'id-ID';
@@ -404,19 +443,16 @@
                     isPlaying = false;
                     playBtn.textContent = '▶';
                     playBtn.style.background = 'linear-gradient(135deg, #FFD700, #FFA500)';
-                    alert('Terjadi error pada voice over. Pastikan browser mendukung text-to-speech.');
                 };
                 
                 speechSynthesis.speak(utterance);
                 currentAudio = utterance;
                 
-                // Mulai rotasi otomatis saat audio berjalan
                 modelViewer.autoRotate = true;
                 isAutoRotating = true;
                 autoRotateBtn.innerHTML = '<span>⏸</span> Berhenti';
                 
             } else {
-                // Fallback menggunakan audio placeholder jika Web Speech API tidak tersedia
                 const audio = new Audio("https://www.soundjay.com/button/beep-07.wav");
                 audio.play();
                 
@@ -445,7 +481,7 @@
         // Teks untuk voice over
         const voiceOverText = "Sigale Gale adalah patung kayu tradisional dari suku Batak, Sumatra Utara, yang dapat menari dan bergerak seperti manusia. Patung ini biasanya digunakan dalam upacara adat untuk menghibur roh orang yang telah meninggal tanpa keturunan. Sigale Gale memiliki tinggi sekitar 1,5 meter dan dihiasi pakaian tradisional Batak dengan ukiran dan warna khas. Gerakan patung ini dikendalikan oleh tali-tali yang dioperasikan oleh beberapa orang, menciptakan tarian yang menghibur dan penuh makna spiritual.";
 
-        // Event listener untuk tombol play/pause audio
+        // Event listeners
         playBtn.addEventListener('click', function() {
             if (isPlaying) {
                 if ('speechSynthesis' in window) {
@@ -464,19 +500,14 @@
             }
         });
 
-        // Event listener untuk tombol reset view
-        resetViewBtn.addEventListener('click', function() {
-            resetView();
-        });
+        resetViewBtn.addEventListener('click', resetView);
 
-        // Event listener untuk tombol auto rotate
         autoRotateBtn.addEventListener('click', function() {
             isAutoRotating = !isAutoRotating;
             modelViewer.autoRotate = isAutoRotating;
             autoRotateBtn.innerHTML = isAutoRotating ? '<span>⏸</span> Berhenti' : '<span>🔄</span> Putar Otomatis';
         });
 
-        // Event listener untuk tombol zoom in
         zoomInBtn.addEventListener('click', function() {
             const currentOrbit = modelViewer.getCameraOrbit();
             const currentDistance = parseFloat(currentOrbit.radius);
@@ -484,7 +515,6 @@
             modelViewer.cameraOrbit = `${currentOrbit.theta}deg ${currentOrbit.phi}deg ${newDistance}%`;
         });
 
-        // Event listener untuk tombol zoom out
         zoomOutBtn.addEventListener('click', function() {
             const currentOrbit = modelViewer.getCameraOrbit();
             const currentDistance = parseFloat(currentOrbit.radius);
@@ -492,24 +522,10 @@
             modelViewer.cameraOrbit = `${currentOrbit.theta}deg ${currentOrbit.phi}deg ${newDistance}%`;
         });
 
-        // Event listener untuk kontrol material
-        materialBtns.forEach(btn => {
-            btn.addEventListener('click', function() {
-                const environment = this.getAttribute('data-environment');
-                modelViewer.environmentImage = environment;
-                
-                // Update active state
-                materialBtns.forEach(b => b.classList.remove('active'));
-                this.classList.add('active');
-            });
-        });
-
         // Inisialisasi
         window.addEventListener('load', function() {
             console.log('Website Sigale Gale 3D siap digunakan');
-            // Set exposure untuk pencahayaan yang lebih baik
-            modelViewer.exposure = 1.5;
-            modelViewer.shadowIntensity = 1.5;
+            tryLoadDefaultModel();
         });
     </script>
 </body>
