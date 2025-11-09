@@ -24,7 +24,7 @@
         }
 
         .container {
-            max-width: 800px;
+            max-width: 900px;
             width: 100%;
             background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(10px);
@@ -84,7 +84,7 @@
             display: flex;
             justify-content: center;
             gap: 12px;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             flex-wrap: wrap;
         }
 
@@ -112,6 +112,38 @@
 
         .control-btn:active {
             transform: scale(0.95);
+        }
+
+        .model-selector {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .model-btn {
+            background: rgba(255, 255, 255, 0.15);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            padding: 10px 20px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .model-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-2px);
+        }
+
+        .model-btn.active {
+            background: #FFD700;
+            color: #8B4513;
+            border-color: #FFD700;
+            font-weight: bold;
         }
 
         .object-title {
@@ -179,6 +211,13 @@
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
         }
 
+        .model-info {
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
         @media (max-width: 768px) {
             .model-container {
                 height: 350px;
@@ -188,11 +227,11 @@
                 padding: 20px;
             }
             
-            .model-controls {
+            .model-controls, .model-selector {
                 gap: 8px;
             }
             
-            .control-btn {
+            .control-btn, .model-btn {
                 padding: 10px 14px;
                 font-size: 0.85rem;
             }
@@ -214,6 +253,10 @@
             <div class="cultural-badge">Warisan Budaya Batak</div>
         </div>
         
+        <div class="model-info" id="model-info">
+            Memuat Model High Resolution...
+        </div>
+        
         <div class="model-container">
             <div class="loading-overlay" id="loading-overlay">
                 <div class="spinner"></div>
@@ -221,16 +264,14 @@
             </div>
             <model-viewer 
                 id="model-viewer"
-                src="./scene.glb"
+                src="./highres.glb"
                 alt="Model 3D Sigale Gale"
                 auto-rotate 
                 camera-controls
                 shadow-intensity="1.5"
                 environment-image="neutral"
                 camera-orbit="0deg 75deg 105%"
-                exposure="1.5"
-                ar
-                ar-modes="webxr scene-viewer quick-look">
+                exposure="1.5">
                 
                 <div slot="poster">
                     <div style="display: flex; justify-content: center; align-items: center; height: 100%; color: white;">
@@ -238,6 +279,15 @@
                     </div>
                 </div>
             </model-viewer>
+        </div>
+
+        <div class="model-selector">
+            <button class="model-btn active" data-model="highres.glb">
+                🎯 High Resolution
+            </button>
+            <button class="model-btn" data-model="textured.glb">
+                🎨 Textured Version
+            </button>
         </div>
         
         <div class="model-controls">
@@ -271,7 +321,7 @@
     </div>
 
     <script>
-        // Elemen DOM
+       
         const playBtn = document.getElementById('play-btn');
         const modelViewer = document.getElementById('model-viewer');
         const resetViewBtn = document.getElementById('reset-view');
@@ -279,63 +329,81 @@
         const zoomInBtn = document.getElementById('zoom-in');
         const zoomOutBtn = document.getElementById('zoom-out');
         const loadingOverlay = document.getElementById('loading-overlay');
+        const modelInfo = document.getElementById('model-info');
+        const modelBtns = document.querySelectorAll('.model-btn');
 
         let currentAudio = null;
         let isPlaying = false;
         let isAutoRotating = true;
+        let currentModel = 'highres.glb';
 
-        // Event listener untuk model viewer
-        modelViewer.addEventListener('load', () => {
-            console.log('Model Sigale Gale berhasil dimuat');
-            loadingOverlay.style.display = 'none';
+        
+        function switchModel(modelFile) {
+            loadingOverlay.style.display = 'flex';
+            loadingOverlay.innerHTML = `
+                <div class="spinner"></div>
+                <div>Memuat ${modelFile === 'highres.glb' ? 'High Resolution' : 'Textured'} Model...</div>
+            `;
             
-            // Optimalkan tampilan
+            modelInfo.textContent = `Memuat ${modelFile === 'highres.glb' ? 'High Resolution' : 'Textured'} Model...`;
+            
+            
+            modelViewer.src = `./${modelFile}`;
+            currentModel = modelFile;
+            
+           
+            modelBtns.forEach(btn => {
+                if (btn.getAttribute('data-model') === modelFile) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+        }
+
+       
+        modelBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const modelFile = this.getAttribute('data-model');
+                if (modelFile !== currentModel) {
+                    switchModel(modelFile);
+                }
+            });
+        });
+
+        
+        modelViewer.addEventListener('load', () => {
+            console.log(`Model ${currentModel} berhasil dimuat`);
+            loadingOverlay.style.display = 'none';
+            modelInfo.textContent = `Model ${currentModel === 'highres.glb' ? 'High Resolution' : 'Textured'} berhasil dimuat`;
+            
+         
             modelViewer.exposure = 1.8;
             modelViewer.shadowIntensity = 1.8;
         });
 
         modelViewer.addEventListener('error', (event) => {
             console.error('Error loading model:', event);
+            
+            
+            const alternativeModel = currentModel === 'highres.glb' ? 'textured.glb' : 'highres.glb';
+            
             loadingOverlay.innerHTML = `
                 <div style="text-align: center;">
                     <div style="font-size: 3rem; margin-bottom: 10px;">⚠️</div>
-                    <div>File sigale-gale.glb tidak ditemukan</div>
+                    <div>File ${currentModel} tidak ditemukan</div>
                     <div style="font-size: 0.8rem; margin-top: 10px; opacity: 0.8;">
-                        Pastikan file sigale-gale.glb berada di folder yang sama
+                        Mencoba load model alternatif...
                     </div>
-                    <div style="font-size: 0.7rem; margin-top: 5px; opacity: 0.6;">
-                        Atau gunakan model placeholder di bawah
-                    </div>
-                    <button onclick="loadPlaceholderModel()" style="margin-top: 15px; padding: 8px 16px; background: #FFD700; border: none; border-radius: 5px; cursor: pointer;">
-                        Gunakan Model Placeholder
-                    </button>
                 </div>
             `;
+            
+            setTimeout(() => {
+                switchModel(alternativeModel);
+            }, 2000);
         });
 
-        // Fungsi untuk load placeholder model
-        window.loadPlaceholderModel = function() {
-            loadingOverlay.innerHTML = `
-                <div class="spinner"></div>
-                <div>Memuat model placeholder...</div>
-            `;
-            
-            // Gunakan model placeholder dari CDN
-            modelViewer.src = 'https://modelviewer.dev/shared-assets/models/Astronaut.glb';
-            
-            // Update deskripsi untuk placeholder
-            document.querySelector('.object-description').innerHTML = `
-                <strong>[MODEL PLACEHOLDER]</strong><br><br>
-                Sigale Gale adalah patung kayu tradisional dari suku Batak, Sumatra Utara, 
-                yang dapat menari dan bergerak seperti manusia. Patung ini biasanya digunakan 
-                dalam upacara adat untuk menghibur roh orang yang telah meninggal tanpa keturunan.
-                <br><br>
-                <em>Catatan: Model yang ditampilkan adalah placeholder. Untuk menampilkan model asli Sigale Gale, 
-                pastikan file sigale-gale.glb berada di folder yang sama dengan file HTML ini.</em>
-            `;
-        };
-
-        // Fungsi untuk text-to-speech
+       
         function speakText(text) {
             if (currentAudio && isPlaying) {
                 currentAudio.pause();
@@ -397,7 +465,7 @@
             }
         }
 
-        // Fungsi reset view
+     
         function resetView() {
             modelViewer.cameraOrbit = "0deg 75deg 105%";
             modelViewer.autoRotate = false;
@@ -405,10 +473,10 @@
             autoRotateBtn.innerHTML = '<span>🔄</span> Putar Otomatis';
         }
 
-        // Teks untuk voice over
+     
         const voiceOverText = "Sigale Gale adalah patung kayu tradisional dari suku Batak, Sumatra Utara, yang dapat menari dan bergerak seperti manusia. Patung ini biasanya digunakan dalam upacara adat untuk menghibur roh orang yang telah meninggal tanpa keturunan. Sigale Gale memiliki tinggi sekitar 1,5 meter dan dihiasi pakaian tradisional Batak dengan ukiran dan warna khas. Gerakan patung ini dikendalikan oleh tali-tali yang dioperasikan oleh beberapa orang, menciptakan tarian yang menghibur dan penuh makna spiritual.";
 
-        // Event listeners
+       
         playBtn.addEventListener('click', function() {
             if (isPlaying) {
                 if ('speechSynthesis' in window) {
@@ -449,20 +517,20 @@
             modelViewer.cameraOrbit = `${currentOrbit.theta}deg ${currentOrbit.phi}deg ${newDistance}%`;
         });
 
-        // Auto-hide loading setelah timeout (fallback)
+        
         setTimeout(() => {
             if (loadingOverlay.style.display !== 'none') {
                 loadingOverlay.innerHTML = `
                     <div style="text-align: center;">
                         <div style="font-size: 3rem; margin-bottom: 10px;">⏳</div>
                         <div>Loading timeout</div>
-                        <button onclick="loadPlaceholderModel()" style="margin-top: 15px; padding: 8px 16px; background: #FFD700; border: none; border-radius: 5px; cursor: pointer;">
-                            Gunakan Model Placeholder
-                        </button>
+                        <div style="font-size: 0.8rem; margin-top: 10px; opacity: 0.8;">
+                            Pastikan file highres.glb dan textured.glb ada di folder yang sama
+                        </div>
                     </div>
                 `;
             }
-        }, 10000); // 10 detik timeout
+        }, 10000);
     </script>
 </body>
 </html>
