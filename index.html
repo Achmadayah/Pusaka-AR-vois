@@ -179,25 +179,6 @@
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
         }
 
-        .file-input-container {
-            text-align: center;
-            margin-bottom: 15px;
-        }
-
-        .file-input {
-            background: rgba(255, 255, 255, 0.15);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 8px;
-            padding: 10px 15px;
-            color: white;
-            cursor: pointer;
-            font-size: 0.9rem;
-        }
-
-        .file-input:hover {
-            background: rgba(255, 255, 255, 0.25);
-        }
-
         @media (max-width: 768px) {
             .model-container {
                 height: 350px;
@@ -232,32 +213,28 @@
         <div style="text-align: center; margin-bottom: 15px;">
             <div class="cultural-badge">Warisan Budaya Batak</div>
         </div>
-
-        <div class="file-input-container">
-            <label class="file-input">
-                📁 Upload Model 3D (GLB)
-                <input type="file" id="model-upload" accept=".glb" style="display: none;">
-            </label>
-        </div>
         
         <div class="model-container">
             <div class="loading-overlay" id="loading-overlay">
                 <div class="spinner"></div>
-                <div>Pilih file model 3D (.glb)</div>
+                <div>Memuat Model Sigale Gale...</div>
             </div>
             <model-viewer 
                 id="model-viewer"
+                src="./scene.glb"
                 alt="Model 3D Sigale Gale"
                 auto-rotate 
                 camera-controls
                 shadow-intensity="1.5"
                 environment-image="neutral"
                 camera-orbit="0deg 75deg 105%"
-                exposure="1.5">
+                exposure="1.5"
+                ar
+                ar-modes="webxr scene-viewer quick-look">
                 
                 <div slot="poster">
                     <div style="display: flex; justify-content: center; align-items: center; height: 100%; color: white;">
-                        Model 3D belum dimuat
+                        Model Sigale Gale 3D
                     </div>
                 </div>
             </model-viewer>
@@ -284,7 +261,8 @@
             yang dapat menari dan bergerak seperti manusia. Patung ini biasanya digunakan 
             dalam upacara adat untuk menghibur roh orang yang telah meninggal tanpa keturunan. 
             Sigale Gale memiliki tinggi sekitar 1,5 meter dan dihiasi pakaian tradisional Batak 
-            dengan ukiran dan warna khas.
+            dengan ukiran dan warna khas. Gerakan patung ini dikendalikan oleh tali-tali yang 
+            dioperasikan oleh beberapa orang, menciptakan tarian yang menghibur dan penuh makna spiritual.
         </p>
         
         <div class="audio-controls">
@@ -301,112 +279,61 @@
         const zoomInBtn = document.getElementById('zoom-in');
         const zoomOutBtn = document.getElementById('zoom-out');
         const loadingOverlay = document.getElementById('loading-overlay');
-        const modelUpload = document.getElementById('model-upload');
 
         let currentAudio = null;
         let isPlaying = false;
         let isAutoRotating = true;
 
-        // Event listener untuk upload file
-        modelUpload.addEventListener('change', function(event) {
-            const file = event.target.files[0];
-            if (file) {
-                if (file.name.toLowerCase().endsWith('.glb')) {
-                    loadModelFromFile(file);
-                } else {
-                    alert('Silakan pilih file dengan format .glb');
-                }
-            }
+        // Event listener untuk model viewer
+        modelViewer.addEventListener('load', () => {
+            console.log('Model Sigale Gale berhasil dimuat');
+            loadingOverlay.style.display = 'none';
+            
+            // Optimalkan tampilan
+            modelViewer.exposure = 1.8;
+            modelViewer.shadowIntensity = 1.8;
         });
 
-        // Fungsi untuk memuat model dari file
-        function loadModelFromFile(file) {
+        modelViewer.addEventListener('error', (event) => {
+            console.error('Error loading model:', event);
+            loadingOverlay.innerHTML = `
+                <div style="text-align: center;">
+                    <div style="font-size: 3rem; margin-bottom: 10px;">⚠️</div>
+                    <div>File sigale-gale.glb tidak ditemukan</div>
+                    <div style="font-size: 0.8rem; margin-top: 10px; opacity: 0.8;">
+                        Pastikan file sigale-gale.glb berada di folder yang sama
+                    </div>
+                    <div style="font-size: 0.7rem; margin-top: 5px; opacity: 0.6;">
+                        Atau gunakan model placeholder di bawah
+                    </div>
+                    <button onclick="loadPlaceholderModel()" style="margin-top: 15px; padding: 8px 16px; background: #FFD700; border: none; border-radius: 5px; cursor: pointer;">
+                        Gunakan Model Placeholder
+                    </button>
+                </div>
+            `;
+        });
+
+        // Fungsi untuk load placeholder model
+        window.loadPlaceholderModel = function() {
             loadingOverlay.innerHTML = `
                 <div class="spinner"></div>
-                <div>Memuat model 3D...</div>
+                <div>Memuat model placeholder...</div>
             `;
-            loadingOverlay.style.display = 'flex';
-
-            const reader = new FileReader();
             
-            reader.onload = function(e) {
-                const arrayBuffer = e.target.result;
-                
-                // Buat blob URL dari array buffer
-                const blob = new Blob([arrayBuffer], { type: 'model/gltf-binary' });
-                const url = URL.createObjectURL(blob);
-                
-                // Set source model viewer
-                modelViewer.src = url;
-                
-                // Event listener untuk success
-                modelViewer.addEventListener('load', () => {
-                    console.log('Model berhasil dimuat');
-                    loadingOverlay.style.display = 'none';
-                    
-                    // Setel pencahayaan yang optimal
-                    modelViewer.exposure = 1.8;
-                    modelViewer.shadowIntensity = 1.8;
-                    
-                    // Reset camera
-                    resetView();
-                });
-
-                // Event listener untuk error
-                modelViewer.addEventListener('error', (event) => {
-                    console.error('Error loading model:', event);
-                    loadingOverlay.innerHTML = `
-                        <div style="text-align: center;">
-                            <div style="font-size: 3rem; margin-bottom: 10px;">⚠️</div>
-                            <div>Gagal memuat model 3D</div>
-                            <div style="font-size: 0.8rem; margin-top: 10px; opacity: 0.8;">
-                                Format file mungkin tidak didukung
-                            </div>
-                        </div>
-                    `;
-                });
-            };
-
-            reader.onerror = function() {
-                loadingOverlay.innerHTML = `
-                    <div style="text-align: center;">
-                        <div style="font-size: 3rem; margin-bottom: 10px;">❌</div>
-                        <div>Gagal membaca file</div>
-                    </div>
-                `;
-            };
-
-            reader.readAsArrayBuffer(file);
-        }
-
-        // Fallback: Coba load dari URL default jika ada
-        function tryLoadDefaultModel() {
-            // Ganti dengan path ke file GLB Anda jika ada
-            const defaultModelUrl = 'scene.glb';
+            // Gunakan model placeholder dari CDN
+            modelViewer.src = 'https://modelviewer.dev/shared-assets/models/Astronaut.glb';
             
-            // Cek jika file ada dengan fetch
-            fetch(defaultModelUrl, { method: 'HEAD' })
-                .then(response => {
-                    if (response.ok) {
-                        modelViewer.src = defaultModelUrl;
-                        loadingOverlay.innerHTML = `
-                            <div class="spinner"></div>
-                            <div>Memuat model default...</div>
-                        `;
-                    }
-                })
-                .catch(() => {
-                    // File tidak ada, tetap tampilkan upload
-                    loadingOverlay.innerHTML = `
-                        <div style="text-align: center;">
-                            <div>Pilih file model 3D (.glb)</div>
-                            <div style="font-size: 0.8rem; margin-top: 10px; opacity: 0.8;">
-                                Upload file GLB untuk menampilkan model
-                            </div>
-                        </div>
-                    `;
-                });
-        }
+            // Update deskripsi untuk placeholder
+            document.querySelector('.object-description').innerHTML = `
+                <strong>[MODEL PLACEHOLDER]</strong><br><br>
+                Sigale Gale adalah patung kayu tradisional dari suku Batak, Sumatra Utara, 
+                yang dapat menari dan bergerak seperti manusia. Patung ini biasanya digunakan 
+                dalam upacara adat untuk menghibur roh orang yang telah meninggal tanpa keturunan.
+                <br><br>
+                <em>Catatan: Model yang ditampilkan adalah placeholder. Untuk menampilkan model asli Sigale Gale, 
+                pastikan file sigale-gale.glb berada di folder yang sama dengan file HTML ini.</em>
+            `;
+        };
 
         // Fungsi untuk text-to-speech
         function speakText(text) {
@@ -522,11 +449,20 @@
             modelViewer.cameraOrbit = `${currentOrbit.theta}deg ${currentOrbit.phi}deg ${newDistance}%`;
         });
 
-        // Inisialisasi
-        window.addEventListener('load', function() {
-            console.log('Website Sigale Gale 3D siap digunakan');
-            tryLoadDefaultModel();
-        });
+        // Auto-hide loading setelah timeout (fallback)
+        setTimeout(() => {
+            if (loadingOverlay.style.display !== 'none') {
+                loadingOverlay.innerHTML = `
+                    <div style="text-align: center;">
+                        <div style="font-size: 3rem; margin-bottom: 10px;">⏳</div>
+                        <div>Loading timeout</div>
+                        <button onclick="loadPlaceholderModel()" style="margin-top: 15px; padding: 8px 16px; background: #FFD700; border: none; border-radius: 5px; cursor: pointer;">
+                            Gunakan Model Placeholder
+                        </button>
+                    </div>
+                `;
+            }
+        }, 10000); // 10 detik timeout
     </script>
 </body>
 </html>
